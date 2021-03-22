@@ -23,8 +23,8 @@ const overrides = {
 interface V2Fixture {
   token0: Contract
   token1: Contract
-  WETH: Contract
-  WETHPartner: Contract
+  WBNB: Contract
+  WBNBPartner: Contract
   factoryV1: Contract
   factoryV2: Contract
   router01: Contract
@@ -32,17 +32,17 @@ interface V2Fixture {
   routerEventEmitter: Contract
   router: Contract
   migrator: Contract
-  WETHExchangeV1: Contract
+  WBNBExchangeV1: Contract
   pair: Contract
-  WETHPair: Contract
+  WBNBPair: Contract
 }
 
 export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Promise<V2Fixture> {
   // deploy tokens
   const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)])
   const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)])
-  const WETH = await deployContract(wallet, WETH9)
-  const WETHPartner = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)])
+  const WBNB = await deployContract(wallet, WETH9)
+  const WBNBPartner = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)])
 
   // deploy V1
   const factoryV1 = await deployContract(wallet, UniswapV1Factory, [])
@@ -52,8 +52,8 @@ export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Pro
   const factoryV2 = await deployContract(wallet, OniFactory, [wallet.address])
 
   // deploy routers
-  const router01 = await deployContract(wallet, OniRouter01, [factoryV2.address, WETH.address], overrides)
-  const router02 = await deployContract(wallet, OniRouter02, [factoryV2.address, WETH.address], overrides)
+  const router01 = await deployContract(wallet, OniRouter01, [factoryV2.address, WBNB.address], overrides)
+  const router02 = await deployContract(wallet, OniRouter02, [factoryV2.address, WBNB.address], overrides)
 
   // event emitter for testing
   const routerEventEmitter = await deployContract(wallet, RouterEventEmitter, [])
@@ -62,9 +62,9 @@ export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Pro
   const migrator = await deployContract(wallet, OniMigrator, [factoryV1.address, router01.address], overrides)
 
   // initialize V1
-  await factoryV1.createExchange(WETHPartner.address, overrides)
-  const WETHExchangeV1Address = await factoryV1.getExchange(WETHPartner.address)
-  const WETHExchangeV1 = new Contract(WETHExchangeV1Address, JSON.stringify(UniswapV1Exchange.abi), provider).connect(
+  await factoryV1.createExchange(WBNBPartner.address, overrides)
+  const WBNBExchangeV1Address = await factoryV1.getExchange(WBNBPartner.address)
+  const WBNBExchangeV1 = new Contract(WBNBExchangeV1Address, JSON.stringify(UniswapV1Exchange.abi), provider).connect(
     wallet
   )
 
@@ -77,15 +77,15 @@ export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Pro
   const token0 = tokenA.address === token0Address ? tokenA : tokenB
   const token1 = tokenA.address === token0Address ? tokenB : tokenA
 
-  await factoryV2.createPair(WETH.address, WETHPartner.address)
-  const WETHPairAddress = await factoryV2.getPair(WETH.address, WETHPartner.address)
-  const WETHPair = new Contract(WETHPairAddress, JSON.stringify(OniPair.abi), provider).connect(wallet)
+  await factoryV2.createPair(WBNB.address, WBNBPartner.address)
+  const WBNBPairAddress = await factoryV2.getPair(WBNB.address, WBNBPartner.address)
+  const WBNBPair = new Contract(WBNBPairAddress, JSON.stringify(OniPair.abi), provider).connect(wallet)
 
   return {
     token0,
     token1,
-    WETH,
-    WETHPartner,
+    WBNB,
+    WBNBPartner,
     factoryV1,
     factoryV2,
     router01,
@@ -93,8 +93,8 @@ export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Pro
     router: router02, // the default router, 01 had a minor bug
     routerEventEmitter,
     migrator,
-    WETHExchangeV1,
+    WBNBExchangeV1,
     pair,
-    WETHPair
+    WBNBPair
   }
 }

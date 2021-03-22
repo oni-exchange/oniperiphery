@@ -1,29 +1,29 @@
 pragma solidity =0.6.6;
 
-import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
-import '@uniswap/lib/contracts/libraries/TransferHelper.sol';
+import '@oniswapcore/contracts/interfaces/IOniFactory.sol';
+import '@oniswaplib/contracts/utils/TransferHelper.sol';
 
 import './libraries/OniLibrary.sol';
-import './interfaces/IOniV2Router01.sol';
-import './interfaces/IERC20.sol';
-import './interfaces/IWETH.sol';
+import './interfaces/IOniRouter01.sol';
+import './interfaces/IBEP20.sol';
+import './interfaces/IWBNB.sol';
 
-contract OniRouter01 is IOniV2Router01 {
+contract OniRouter01 is IOniRouter01 {
     address public immutable override factory;
-    address public immutable override WETH;
+    address public immutable override WBNB;
 
     modifier ensure(uint deadline) {
-        require(deadline >= block.timestamp, 'UniswapV2Router: EXPIRED');
+        require(deadline >= block.timestamp, 'OniRouter: EXPIRED');
         _;
     }
 
-    constructor(address _factory, address _WETH) public {
+    constructor(address _factory, address _WBNB) public {
         factory = _factory;
-        WETH = _WETH;
+        WBNB = _WBNB;
     }
 
     receive() external payable {
-        assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
+        assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
     }
 
     // **** ADD LIQUIDITY ****
@@ -36,8 +36,8 @@ contract OniRouter01 is IOniV2Router01 {
         uint amountBMin
     ) private returns (uint amountA, uint amountB) {
         // create the pair if it doesn't exist yet
-        if (IUniswapV2Factory(factory).getPair(tokenA, tokenB) == address(0)) {
-            IUniswapV2Factory(factory).createPair(tokenA, tokenB);
+        if (IOniFactory(factory).getPair(tokenA, tokenB) == address(0)) {
+            IOniFactory(factory).createPair(tokenA, tokenB);
         }
         (uint reserveA, uint reserveB) = OniLibrary.getReserves(factory, tokenA, tokenB);
         if (reserveA == 0 && reserveB == 0) {
@@ -45,12 +45,12 @@ contract OniRouter01 is IOniV2Router01 {
         } else {
             uint amountBOptimal = OniLibrary.quote(amountADesired, reserveA, reserveB);
             if (amountBOptimal <= amountBDesired) {
-                require(amountBOptimal >= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
+                require(amountBOptimal >= amountBMin, 'OniRouter: INSUFFICIENT_B_AMOUNT');
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             } else {
                 uint amountAOptimal = OniLibrary.quote(amountBDesired, reserveB, reserveA);
                 assert(amountAOptimal <= amountADesired);
-                require(amountAOptimal >= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
+                require(amountAOptimal >= amountAMin, 'OniRouter: INSUFFICIENT_A_AMOUNT');
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             }
         }
@@ -69,30 +69,30 @@ contract OniRouter01 is IOniV2Router01 {
         address pair = OniLibrary.pairFor(factory, tokenA, tokenB);
         TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
         TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
-        liquidity = IUniswapV2Pair(pair).mint(to);
+        liquidity = IOniPair(pair).mint(to);
     }
-    function addLiquidityETH(
+    function addLiquidityBNB(
         address token,
         uint amountTokenDesired,
         uint amountTokenMin,
-        uint amountETHMin,
+        uint amountBNBMin,
         address to,
         uint deadline
-    ) external override payable ensure(deadline) returns (uint amountToken, uint amountETH, uint liquidity) {
-        (amountToken, amountETH) = _addLiquidity(
+    ) external override payable ensure(deadline) returns (uint amountToken, uint amountBNB, uint liquidity) {
+        (amountToken, amountBNB) = _addLiquidity(
             token,
-            WETH,
+            WBNB,
             amountTokenDesired,
             msg.value,
             amountTokenMin,
-            amountETHMin
+            amountBNBMin
         );
-        address pair = OniLibrary.pairFor(factory, token, WETH);
+        address pair = OniLibrary.pairFor(factory, token, WBNB);
         TransferHelper.safeTransferFrom(token, msg.sender, pair, amountToken);
-        IWETH(WETH).deposit{value: amountETH}();
-        assert(IWETH(WETH).transfer(pair, amountETH));
-        liquidity = IUniswapV2Pair(pair).mint(to);
-        if (msg.value > amountETH) TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH); // refund dust eth, if any
+        IWBNB(WBNB).deposit{value: amountBNB}();
+        assert(IWBNB(WBNB).transfer(pair, amountBNB));
+        liquidity = IOniPair(pair).mint(to);
+        if (msg.value > amountBNB) TransferHelper.safeTransferBNB(msg.sender, msg.value - amountBNB); // refund dust eth, if any
     }
 
     // **** REMOVE LIQUIDITY ****
@@ -106,33 +106,33 @@ contract OniRouter01 is IOniV2Router01 {
         uint deadline
     ) public override ensure(deadline) returns (uint amountA, uint amountB) {
         address pair = OniLibrary.pairFor(factory, tokenA, tokenB);
-        IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
-        (uint amount0, uint amount1) = IUniswapV2Pair(pair).burn(to);
+        IOniPair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
+        (uint amount0, uint amount1) = IOniPair(pair).burn(to);
         (address token0,) = OniLibrary.sortTokens(tokenA, tokenB);
         (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
-        require(amountA >= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
-        require(amountB >= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
+        require(amountA >= amountAMin, 'OniRouter: INSUFFICIENT_A_AMOUNT');
+        require(amountB >= amountBMin, 'OniRouter: INSUFFICIENT_B_AMOUNT');
     }
-    function removeLiquidityETH(
+    function removeLiquidityBNB(
         address token,
         uint liquidity,
         uint amountTokenMin,
-        uint amountETHMin,
+        uint amountBNBMin,
         address to,
         uint deadline
-    ) public override ensure(deadline) returns (uint amountToken, uint amountETH) {
-        (amountToken, amountETH) = removeLiquidity(
+    ) public override ensure(deadline) returns (uint amountToken, uint amountBNB) {
+        (amountToken, amountBNB) = removeLiquidity(
             token,
-            WETH,
+            WBNB,
             liquidity,
             amountTokenMin,
-            amountETHMin,
+            amountBNBMin,
             address(this),
             deadline
         );
         TransferHelper.safeTransfer(token, to, amountToken);
-        IWETH(WETH).withdraw(amountETH);
-        TransferHelper.safeTransferETH(to, amountETH);
+        IWBNB(WBNB).withdraw(amountBNB);
+        TransferHelper.safeTransferBNB(to, amountBNB);
     }
     function removeLiquidityWithPermit(
         address tokenA,
@@ -146,22 +146,22 @@ contract OniRouter01 is IOniV2Router01 {
     ) external override returns (uint amountA, uint amountB) {
         address pair = OniLibrary.pairFor(factory, tokenA, tokenB);
         uint value = approveMax ? uint(-1) : liquidity;
-        IUniswapV2Pair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        IOniPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
     }
-    function removeLiquidityETHWithPermit(
+    function removeLiquidityBNBWithPermit(
         address token,
         uint liquidity,
         uint amountTokenMin,
-        uint amountETHMin,
+        uint amountBNBMin,
         address to,
         uint deadline,
         bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external override returns (uint amountToken, uint amountETH) {
-        address pair = OniLibrary.pairFor(factory, token, WETH);
+    ) external override returns (uint amountToken, uint amountBNB) {
+        address pair = OniLibrary.pairFor(factory, token, WBNB);
         uint value = approveMax ? uint(-1) : liquidity;
-        IUniswapV2Pair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
-        (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);
+        IOniPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        (amountToken, amountBNB) = removeLiquidityBNB(token, liquidity, amountTokenMin, amountBNBMin, to, deadline);
     }
 
     // **** SWAP ****
@@ -173,7 +173,7 @@ contract OniRouter01 is IOniV2Router01 {
             uint amountOut = amounts[i + 1];
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
             address to = i < path.length - 2 ? OniLibrary.pairFor(factory, output, path[i + 2]) : _to;
-            IUniswapV2Pair(OniLibrary.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
+            IOniPair(OniLibrary.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
         }
     }
     function swapExactTokensForTokens(
@@ -184,7 +184,7 @@ contract OniRouter01 is IOniV2Router01 {
         uint deadline
     ) external override ensure(deadline) returns (uint[] memory amounts) {
         amounts = OniLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(amounts[amounts.length - 1] >= amountOutMin, 'OniRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         TransferHelper.safeTransferFrom(path[0], msg.sender, OniLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
         _swap(amounts, path, to);
     }
@@ -196,66 +196,66 @@ contract OniRouter01 is IOniV2Router01 {
         uint deadline
     ) external override ensure(deadline) returns (uint[] memory amounts) {
         amounts = OniLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');
+        require(amounts[0] <= amountInMax, 'OniRouter: EXCESSIVE_INPUT_AMOUNT');
         TransferHelper.safeTransferFrom(path[0], msg.sender, OniLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
         _swap(amounts, path, to);
     }
-    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
+    function swapExactBNBForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
         external
         override
         payable
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[0] == WETH, 'UniswapV2Router: INVALID_PATH');
+        require(path[0] == WBNB, 'OniRouter: INVALID_PATH');
         amounts = OniLibrary.getAmountsOut(factory, msg.value, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
-        IWETH(WETH).deposit{value: amounts[0]}();
-        assert(IWETH(WETH).transfer(OniLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        require(amounts[amounts.length - 1] >= amountOutMin, 'OniRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        IWBNB(WBNB).deposit{value: amounts[0]}();
+        assert(IWBNB(WBNB).transfer(OniLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
     }
-    function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
+    function swapTokensForExactBNB(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
         external
         override
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[path.length - 1] == WETH, 'UniswapV2Router: INVALID_PATH');
+        require(path[path.length - 1] == WBNB, 'OniRouter: INVALID_PATH');
         amounts = OniLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');
+        require(amounts[0] <= amountInMax, 'OniRouter: EXCESSIVE_INPUT_AMOUNT');
         TransferHelper.safeTransferFrom(path[0], msg.sender, OniLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
         _swap(amounts, path, address(this));
-        IWETH(WETH).withdraw(amounts[amounts.length - 1]);
-        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+        IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
+        TransferHelper.safeTransferBNB(to, amounts[amounts.length - 1]);
     }
-    function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+    function swapExactTokensForBNB(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
         external
         override
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[path.length - 1] == WETH, 'UniswapV2Router: INVALID_PATH');
+        require(path[path.length - 1] == WBNB, 'OniRouter: INVALID_PATH');
         amounts = OniLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(amounts[amounts.length - 1] >= amountOutMin, 'OniRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         TransferHelper.safeTransferFrom(path[0], msg.sender, OniLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
         _swap(amounts, path, address(this));
-        IWETH(WETH).withdraw(amounts[amounts.length - 1]);
-        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+        IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
+        TransferHelper.safeTransferBNB(to, amounts[amounts.length - 1]);
     }
-    function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
+    function swapBNBForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
         external
         override
         payable
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[0] == WETH, 'UniswapV2Router: INVALID_PATH');
+        require(path[0] == WBNB, 'OniRouter: INVALID_PATH');
         amounts = OniLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= msg.value, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');
-        IWETH(WETH).deposit{value: amounts[0]}();
-        assert(IWETH(WETH).transfer(OniLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        require(amounts[0] <= msg.value, 'OniRouter: EXCESSIVE_INPUT_AMOUNT');
+        IWBNB(WBNB).deposit{value: amounts[0]}();
+        assert(IWBNB(WBNB).transfer(OniLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
-        if (msg.value > amounts[0]) TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]); // refund dust eth, if any
+        if (msg.value > amounts[0]) TransferHelper.safeTransferBNB(msg.sender, msg.value - amounts[0]); // refund dust eth, if any
     }
 
     function quote(uint amountA, uint reserveA, uint reserveB) public pure override returns (uint amountB) {

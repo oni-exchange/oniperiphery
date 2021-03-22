@@ -1,14 +1,9 @@
 {
-  "name": "@uniswap/v2-periphery",
+  "name": "oniwap-periphery",
   "version": "1.1.0-beta.0",
-  "description": "🎚 Peripheral smart contracts for interacting with Uniswap V2",
+  "description": "🎚 Peripheral smart contracts for interacting with Oniswap V2",
   "engines": {
     "node": ">=10"
-  },
-  "homepage": "https://uniswap.org",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Uniswap/uniswap-v2-periphery"
   },
   "files": [
     "build",
@@ -16,13 +11,15 @@
   ],
   "dependencies": {
     "@uniswap/lib": "1.1.1",
-    "@uniswap/v2-core": "1.0.0"
+    "@uniswap/v2-core": "1.0.0",
+    "@oniswaplib": "git+ssh://git@git.sfxdx.ru:oni-swap/oni-swap-lib.git",
+    "@oniswapcore": "git+ssh://git@git.sfxdx.ru:oni-swap/oni-swap-core.git"
   },
   "devDependencies": {
     "@types/chai": "^4.2.6",
     "@types/mocha": "^5.2.7",
     "chai": "^4.2.0",
-    "ethereum-waffle": "^3.0.0",
+    "ethereum-waffle": "^2.4.1",
     "ethereumjs-util": "^6.2.0",
     "mocha": "^6.2.2",
     "ncp": "^2.0.0",

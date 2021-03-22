@@ -3,7 +3,7 @@ import { solidity, MockProvider, createFixtureLoader, deployContract } from 'eth
 import { Contract } from 'ethers'
 import { BigNumber, bigNumberify } from 'ethers/utils'
 import { MaxUint256 } from 'ethers/constants'
-import IUniswapV2Pair from '@uniswap/v2-core/build/IUniswapV2Pair.json'
+import IOniPair from '../buildOni/OniPair.json'
 
 import { v2Fixture } from './shared/fixtures'
 import { expandTo18Decimals, getApprovalDigest, MINIMUM_LIQUIDITY } from './shared/utilities'
@@ -131,65 +131,65 @@ describe('fee-on-transfer tokens', () => {
   const loadFixture = createFixtureLoader(provider, [wallet])
 
   let DTT: Contract
-  let WETH: Contract
+  let WBNB: Contract
   let router: Contract
   let pair: Contract
   beforeEach(async function() {
     const fixture = await loadFixture(v2Fixture)
 
-    WETH = fixture.WETH
+    WBNB = fixture.WBNB
     router = fixture.router02
 
     DTT = await deployContract(wallet, DeflatingERC20, [expandTo18Decimals(10000)])
 
-    // make a DTT<>WETH pair
-    await fixture.factoryV2.createPair(DTT.address, WETH.address)
-    const pairAddress = await fixture.factoryV2.getPair(DTT.address, WETH.address)
-    pair = new Contract(pairAddress, JSON.stringify(IUniswapV2Pair.abi), provider).connect(wallet)
+    // make a DTT<>WBNB pair
+    await fixture.factoryV2.createPair(DTT.address, WBNB.address)
+    const pairAddress = await fixture.factoryV2.getPair(DTT.address, WBNB.address)
+    pair = new Contract(pairAddress, JSON.stringify(IOniPair.abi), provider).connect(wallet)
   })
 
   afterEach(async function() {
     expect(await provider.getBalance(router.address)).to.eq(0)
   })
 
-  async function addLiquidity(DTTAmount: BigNumber, WETHAmount: BigNumber) {
+  async function addLiquidity(DTTAmount: BigNumber, WBNBAmount: BigNumber) {
     await DTT.approve(router.address, MaxUint256)
-    await router.addLiquidityETH(DTT.address, DTTAmount, DTTAmount, WETHAmount, wallet.address, MaxUint256, {
+    await router.addLiquidityBNB(DTT.address, DTTAmount, DTTAmount, WBNBAmount, wallet.address, MaxUint256, {
       ...overrides,
-      value: WETHAmount
+      value: WBNBAmount
     })
   }
 
-  it('removeLiquidityETHSupportingFeeOnTransferTokens', async () => {
+  it('removeLiquidityBNBSupportingFeeOnTransferTokens', async () => {
     const DTTAmount = expandTo18Decimals(1)
-    const ETHAmount = expandTo18Decimals(4)
-    await addLiquidity(DTTAmount, ETHAmount)
+    const BNBAmount = expandTo18Decimals(4)
+    await addLiquidity(DTTAmount, BNBAmount)
 
     const DTTInPair = await DTT.balanceOf(pair.address)
-    const WETHInPair = await WETH.balanceOf(pair.address)
+    const WBNBInPair = await WBNB.balanceOf(pair.address)
     const liquidity = await pair.balanceOf(wallet.address)
     const totalSupply = await pair.totalSupply()
     const NaiveDTTExpected = DTTInPair.mul(liquidity).div(totalSupply)
-    const WETHExpected = WETHInPair.mul(liquidity).div(totalSupply)
+    const WBNBExpected = WBNBInPair.mul(liquidity).div(totalSupply)
 
     await pair.approve(router.address, MaxUint256)
-    await router.removeLiquidityETHSupportingFeeOnTransferTokens(
+    await router.removeLiquidityBNBSupportingFeeOnTransferTokens(
       DTT.address,
       liquidity,
       NaiveDTTExpected,
-      WETHExpected,
+      WBNBExpected,
       wallet.address,
       MaxUint256,
       overrides
     )
   })
 
-  it('removeLiquidityETHWithPermitSupportingFeeOnTransferTokens', async () => {
+  it('removeLiquidityBNBWithPermitSupportingFeeOnTransferTokens', async () => {
     const DTTAmount = expandTo18Decimals(1)
       .mul(100)
       .div(99)
-    const ETHAmount = expandTo18Decimals(4)
-    await addLiquidity(DTTAmount, ETHAmount)
+    const BNBAmount = expandTo18Decimals(4)
+    await addLiquidity(DTTAmount, BNBAmount)
 
     const expectedLiquidity = expandTo18Decimals(2)
 
@@ -203,18 +203,18 @@ describe('fee-on-transfer tokens', () => {
     const { v, r, s } = ecsign(Buffer.from(digest.slice(2), 'hex'), Buffer.from(wallet.privateKey.slice(2), 'hex'))
 
     const DTTInPair = await DTT.balanceOf(pair.address)
-    const WETHInPair = await WETH.balanceOf(pair.address)
+    const WBNBInPair = await WBNB.balanceOf(pair.address)
     const liquidity = await pair.balanceOf(wallet.address)
     const totalSupply = await pair.totalSupply()
     const NaiveDTTExpected = DTTInPair.mul(liquidity).div(totalSupply)
-    const WETHExpected = WETHInPair.mul(liquidity).div(totalSupply)
+    const WBNBExpected = WBNBInPair.mul(liquidity).div(totalSupply)
 
     await pair.approve(router.address, MaxUint256)
-    await router.removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(
+    await router.removeLiquidityBNBWithPermitSupportingFeeOnTransferTokens(
       DTT.address,
       liquidity,
       NaiveDTTExpected,
-      WETHExpected,
+      WBNBExpected,
       wallet.address,
       MaxUint256,
       false,
@@ -229,35 +229,35 @@ describe('fee-on-transfer tokens', () => {
     const DTTAmount = expandTo18Decimals(5)
       .mul(100)
       .div(99)
-    const ETHAmount = expandTo18Decimals(10)
+    const BNBAmount = expandTo18Decimals(10)
     const amountIn = expandTo18Decimals(1)
 
     beforeEach(async () => {
-      await addLiquidity(DTTAmount, ETHAmount)
+      await addLiquidity(DTTAmount, BNBAmount)
     })
 
-    it('DTT -> WETH', async () => {
+    it('DTT -> WBNB', async () => {
       await DTT.approve(router.address, MaxUint256)
 
       await router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
         amountIn,
         0,
-        [DTT.address, WETH.address],
+        [DTT.address, WBNB.address],
         wallet.address,
         MaxUint256,
         overrides
       )
     })
 
-    // WETH -> DTT
-    it('WETH -> DTT', async () => {
-      await WETH.deposit({ value: amountIn }) // mint WETH
-      await WETH.approve(router.address, MaxUint256)
+    // WBNB -> DTT
+    it('WBNB -> DTT', async () => {
+      await WBNB.deposit({ value: amountIn }) // mint WBNB
+      await WBNB.approve(router.address, MaxUint256)
 
       await router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
         amountIn,
         0,
-        [WETH.address, DTT.address],
+        [WBNB.address, DTT.address],
         wallet.address,
         MaxUint256,
         overrides
@@ -265,18 +265,18 @@ describe('fee-on-transfer tokens', () => {
     })
   })
 
-  // ETH -> DTT
-  it('swapExactETHForTokensSupportingFeeOnTransferTokens', async () => {
+  // BNB -> DTT
+  it('swapExactBNBForTokensSupportingFeeOnTransferTokens', async () => {
     const DTTAmount = expandTo18Decimals(10)
       .mul(100)
       .div(99)
-    const ETHAmount = expandTo18Decimals(5)
+    const BNBAmount = expandTo18Decimals(5)
     const swapAmount = expandTo18Decimals(1)
-    await addLiquidity(DTTAmount, ETHAmount)
+    await addLiquidity(DTTAmount, BNBAmount)
 
-    await router.swapExactETHForTokensSupportingFeeOnTransferTokens(
+    await router.swapExactBNBForTokensSupportingFeeOnTransferTokens(
       0,
-      [WETH.address, DTT.address],
+      [WBNB.address, DTT.address],
       wallet.address,
       MaxUint256,
       {
@@ -286,21 +286,21 @@ describe('fee-on-transfer tokens', () => {
     )
   })
 
-  // DTT -> ETH
-  it('swapExactTokensForETHSupportingFeeOnTransferTokens', async () => {
+  // DTT -> BNB
+  it('swapExactTokensForBNBSupportingFeeOnTransferTokens', async () => {
     const DTTAmount = expandTo18Decimals(5)
       .mul(100)
       .div(99)
-    const ETHAmount = expandTo18Decimals(10)
+    const BNBAmount = expandTo18Decimals(10)
     const swapAmount = expandTo18Decimals(1)
 
-    await addLiquidity(DTTAmount, ETHAmount)
+    await addLiquidity(DTTAmount, BNBAmount)
     await DTT.approve(router.address, MaxUint256)
 
-    await router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+    await router.swapExactTokensForBNBSupportingFeeOnTransferTokens(
       swapAmount,
       0,
-      [DTT.address, WETH.address],
+      [DTT.address, WBNB.address],
       wallet.address,
       MaxUint256,
       overrides
@@ -328,7 +328,7 @@ describe('fee-on-transfer tokens: reloaded', () => {
     DTT = await deployContract(wallet, DeflatingERC20, [expandTo18Decimals(10000)])
     DTT2 = await deployContract(wallet, DeflatingERC20, [expandTo18Decimals(10000)])
 
-    // make a DTT<>WETH pair
+    // make a DTT<>WBNB pair
     await fixture.factoryV2.createPair(DTT.address, DTT2.address)
     const pairAddress = await fixture.factoryV2.getPair(DTT.address, DTT2.address)
   })
