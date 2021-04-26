@@ -30,7 +30,9 @@
     "rimraf": "^3.0.0",
     "solc": "0.6.6",
     "ts-node": "^8.5.4",
-    "typescript": "^3.7.3"
+    "typescript": "^3.7.3",
+    "waffle": "0.0.4",
+    "yarn": "^1.22.10"
   },
   "scripts": {
     "lint": "yarn prettier ./test/*.ts --check",
