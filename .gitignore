@@ -1,2 +1,17 @@
-build/
-node_modules/
+# build
+build
+
+# dependencies
+node_modules
+
+# ide
+.idea/
+.vscode/
+
+#deploy
+Flattened.sol
+
+# security
+.secret
+.env
+

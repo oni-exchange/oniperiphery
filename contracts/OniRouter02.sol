@@ -1,7 +1,7 @@
 pragma solidity =0.6.6;
 
-import '@oniswapcore/contracts/interfaces/IOniFactory.sol';
-import '@oniswaplib/contracts/utils/TransferHelper.sol';
+import 'oniswapcore/contracts/interfaces/IOniFactory.sol';
+import 'oniswaplib/contracts/utils/TransferHelper.sol';
 
 import './interfaces/IOniRouter02.sol';
 import './libraries/OniLibrary.sol';

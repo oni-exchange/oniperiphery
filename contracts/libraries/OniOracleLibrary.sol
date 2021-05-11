@@ -1,7 +1,7 @@
 pragma solidity >=0.5.0;
 
-import '@oniswapcore/contracts/interfaces/IOniPair.sol';
-import '@oniswaplib/contracts/utils/FixedPoint.sol';
+import 'oniswapcore/contracts/interfaces/IOniPair.sol';
+import 'oniswaplib/contracts/utils/FixedPoint.sol';
 
 // library with helper methods for oracles that are concerned with computing average prices
 library OniOracleLibrary {

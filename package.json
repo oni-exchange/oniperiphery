@@ -10,26 +10,32 @@
     "contracts"
   ],
   "dependencies": {
-    "@uniswap/lib": "1.1.1",
-    "@uniswap/v2-core": "1.0.0",
-    "@oniswaplib": "git+ssh://git@git.sfxdx.ru:oni-swap/oni-swap-lib.git",
-    "@oniswapcore": "git+ssh://git@git.sfxdx.ru:oni-swap/oni-swap-core.git"
+    "oniswapcore": "git://github.com/oni-exchange/onicore.git",
+    "oniswaplib": "git://github.com/oni-exchange/onilib.git",
+    "truffle": "^5.1.67",
+    "truffle-flattener": "^1.4.4"
   },
   "devDependencies": {
+    "@ethersproject/solidity": "^5.1.0",
+    "@openzeppelin/test-helpers": "^0.5.10",
+    "@truffle/contract": "^4.3.13",
+    "@truffle/hdwallet-provider": "1.2.3",
     "@types/chai": "^4.2.6",
     "@types/mocha": "^5.2.7",
     "chai": "^4.2.0",
+    "dotenv": "^8.2.0",
     "ethereum-waffle": "^2.4.1",
     "ethereumjs-util": "^6.2.0",
+    "ethers": "^4.0.48",
     "mocha": "^6.2.2",
     "ncp": "^2.0.0",
     "prettier": "^1.19.1",
     "rimraf": "^3.0.0",
     "solc": "0.6.6",
+    "truffle-plugin-verify": "^0.5.7",
     "ts-node": "^8.5.4",
     "typescript": "^3.7.3",
-    "waffle": "0.0.4",
-    "yarn": "^1.22.10"
+    "web3-provider-engine": "^16.0.1"
   },
   "scripts": {
     "lint": "yarn prettier ./test/*.ts --check",
@@ -41,7 +47,9 @@
     "postcompile": "yarn copy-v1-artifacts",
     "pretest": "yarn compile",
     "test": "mocha",
-    "prepublishOnly": "yarn test"
-  },
-  "license": "GPL-3.0-or-later"
+    "prepublishOnly": "yarn test",
+    "deploy": "bash ./scripts/deploy.sh",
+    "verify": "bash ./scripts/verify.sh",
+    "flatten": "truffle-flattener contracts/OniRouter02.sol  >> contracts/Flattened.sol"
+  }
 }

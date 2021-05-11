@@ -1,6 +1,6 @@
 pragma solidity >=0.5.0;
 
-import '@oniswapcore/contracts/interfaces/IOniPair.sol';
+import 'oniswapcore/contracts/interfaces/IOniPair.sol';
 
 import "./SafeMath.sol";
 
@@ -21,7 +21,7 @@ library OniLibrary {
                 hex'ff',
                 factory,
                 keccak256(abi.encodePacked(token0, token1)),
-                hex'9aaf751a340da4d9b8fc45271f6183d12a5f3caf8994bd10dbae6028484de0a3' // init code hash
+                hex'7efa29a41fee8608e40aee497dd3465ed9997b657d9ccc1df79cefd43755c782' // init code hash
             ))));
     }
 
