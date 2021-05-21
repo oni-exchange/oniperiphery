@@ -21,7 +21,7 @@ library OniLibrary {
                 hex'ff',
                 factory,
                 keccak256(abi.encodePacked(token0, token1)),
-                hex'7efa29a41fee8608e40aee497dd3465ed9997b657d9ccc1df79cefd43755c782' // init code hash
+                hex'a1f4c99f8993dd0b6cd299f432407a5b008d6f8fcb984ce3540436e7393a9dcd' // init code hash
             ))));
     }
 

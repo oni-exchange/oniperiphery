@@ -27,9 +27,9 @@ module.exports = function (deployer, network) {
       console.log('WETH:', await b.WBNB.call());
     } else if (network === 'bsc') {
       const WBNBAddress = '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c';
-      // const b = await deployer.deploy(OniRouter02, process.env.ONI_FACTORY_RINKEBY, WBNBAddress, { from: process.env.DEPLOYER_ACCOUNT });
-      // console.log('factory:', await b.factory.call());
-      // console.log('WETH:', await b.WBNB.call());
+      const b = await deployer.deploy(OniRouter02, process.env.ONI_FACTORY_MAINNET, WBNBAddress, { from: process.env.DEPLOYER_ACCOUNT });
+      console.log('factory:', await b.factory.call());
+      console.log('WETH:', await b.WBNB.call());
     } else {
       console.error(`Unsupported network: ${network}`);
     }
